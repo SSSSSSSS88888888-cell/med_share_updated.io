@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💊 服薬管理</title>
+    <meta name="description" content="毎日の服薬を管理し、忘れずに服薬できるようサポートします">
+    
+    <!-- PWA用のメタタグ -->
+    <meta name="theme-color" content="#4F46E5">
+    <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;服薬管理&quot;,&quot;short_name&quot;:&quot;薬管理&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;theme_color&quot;:&quot;#4F46E5&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💊%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+    
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #3730A3;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-600: #4B5563;
+            --gray-800: #1F2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'ヒラギノ角ゴシック', 'Yu Gothic', 'メイリオ', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 8px;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .header-subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .today-date {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 12px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .progress-section {
+            padding: 20px;
+            background: var(--gray-100);
+        }
+
+        .progress-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--gray-800);
+        }
+
+        .progress-bar-container {
+            background: white;
+            border-radius: 12px;
+            height: 24px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--success-color) 0%, #34D399 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 12px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .add-medication-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .add-medication-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .add-medication-btn:active {
+            transform: translateY(0);
+        }
+
+        .medications-list {
+            margin-bottom: 24px;
+        }
+
+        .medication-item {
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .medication-item.completed {
+            background: #F0FDF4;
+            border-color: var(--success-color);
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .medication-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .medication-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--gray-800);
+        }
+
+        .medication-time {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .medication-info {
+            color: var(--gray-600);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .medication-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .complete-btn {
+            flex: 1;
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .complete-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .complete-btn.completed {
+            background: var(--gray-600);
+            cursor: not-allowed;
+        }
+
+        .delete-btn {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: var(--gray-800);
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: var(--gray-800);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .history-section {
+            border-top: 1px solid var(--gray-200);
+            padding-top: 20px;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: var(--gray-800);
+        }
+
+        .history-item {
+            background: var(--gray-100);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .no-medications {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-600);
+        }
+
+        .no-medications img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .check-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            animation: checkPop 0.5s ease forwards;
+        }
+
+        @keyframes checkPop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 4px;
+            }
+
+            .app-container {
+                border-radius: 12px;
+            }
+
+            .medication-actions {
+                flex-direction: column;
+            }
+
+            .modal {
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>💊 服薬管理</h1>
+            <p class="header-subtitle">毎日の服薬をサポート</p>
+            <div class="today-date" id="todayDate"></div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-title">今日の進捗</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0 完了</div>
+        </div>
+
+        <div class="main-content">
+            <button class="add-medication-btn" onclick="openAddModal()">
+                ➕ 新しい薬を追加
+            </button>
+
+            <div class="medications-list" id="medicationsList">
+                <div class="no-medications">
+                    <div style="font-size: 48px; margin-bottom: 16px;">💊</div>
+                    <p>まだ薬が登録されていません<br>新しい薬を追加してください</p>
+                </div>
+            </div>
+
+            <div class="history-section" id="historySection" style="display: none;">
+                <div class="history-title">📊 服薬履歴</div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <h3>新しい薬を追加</h3>
+            <form id="addMedicationForm">
+                <div class="form-group">
+                    <label for="medicationName">薬の名前</label>
+                    <input type="text" id="medicationName" required>
+                </div>
+                <div class="form-group">
+                    <label for="dosage">服用量</label>
+                    <input type="text" id="dosage" placeholder="例: 1錠, 2カプセル">
+                </div>
+                <div class="form-group">
+                    <label for="time">服用時間</label>
+                    <select id="time" required>
+                        <option value="">選択してください</option>
+                        <option value="朝">朝 (7:00-10:00)</option>
+                        <option value="昼">昼 (11:00-14:00)</option>
+                        <option value="夕">夕 (17:00-20:00)</option>
+                        <option value="夜">夜 (21:00-24:00)</option>
+                        <option value="食前">食前</option>
+                        <option value="食後">食後</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="notes">メモ (任意)</label>
+                    <input type="text" id="notes" placeholder="例: 食後30分, 水で服用">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn secondary" onclick="closeAddModal()">キャンセル</button>
+                    <button type="submit" class="modal-btn primary">追加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // データ管理
+        let medications = [];
+        let completedToday = [];
+        let history = [];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateTodayDate();
+            renderMedications();
+            updateProgress();
+            renderHistory();
+            
+            // Service Worker登録（PWA対応）
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('data:text/javascript,console.log("SW loaded")');
+            }
+        });
+
+        // 今日の日付を表示
+        function updateTodayDate() {
+            const today = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('ja-JP', options);
+        }
+
+        // データの読み込み
+        function loadData() {
+            const storedMedications = JSON.parse(localStorage.getItem('medications') || '[]');
+            const storedCompleted = JSON.parse(localStorage.getItem('completedToday') || '[]');
+            const storedHistory = JSON.parse(localStorage.getItem('medicationHistory') || '[]');
+            
+            medications = storedMedications;
+            completedToday = storedCompleted;
+            history = storedHistory;
+            
+            // 日付が変わっていたら完了状態をリセット
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('lastDate');
+            if (lastDate !== today) {
+                completedToday = [];
+                localStorage.setItem('lastDate', today);
+                saveData();
+            }
+        }
+
+        // データの保存
+        function saveData() {
+            localStorage.setItem('medications', JSON.stringify(medications));
+            localStorage.setItem('completedToday', JSON.stringify(completedToday));
+            localStorage.setItem('medicationHistory', JSON.stringify(history));
+        }
+
+        // 薬のリストを表示
+        function renderMedications() {
+            const container = document.getElementById('medicationsList');
+            
+            if (medications.length === 0) {
+                container.innerHTML = `
+                    <div class="no-medications">
+                        <div style="font-size: 48px; margin-bottom: 16px;">💊</div>
+                        <p>まだ薬が登録されていません<br>新しい薬を追加してください</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = medications.map((med, index) => {
+                const isCompleted = completedToday.includes(index);
+                return `
+                    <div class="medication-item ${isCompleted ? 'completed' : ''}">
+                        <div class="medication-header">
+                            <div class="medication-name">${med.name}</div>
+                            <div class="medication-time">${med.time}</div>
+                        </div>
+                        <div class="medication-info">
+                            ${med.dosage ? `服用量: ${med.dosage}` : ''}
+                            ${med.notes ? `<br>メモ: ${med.notes}` : ''}
+                        </div>
+                        <div class="medication-actions">
+                            <button class="complete-btn ${isCompleted ? 'completed' : ''}" 
+                                onclick="completeMedication(${index})"
+                                ${isCompleted ? 'disabled' : ''}>
+                                ${isCompleted ? '✅ 服用済み' : '💊 服用完了'}
+                            </button>
+                            <button class="delete-btn" onclick="deleteMedication(${index})">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 進捗を更新
+        function updateProgress() {
+            const total = medications.length;
+            const completed = completedToday.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${completed} / ${total} 完了`;
+        }
+
+        // 履歴を表示
+        function renderHistory() {
+            const historySection = document.getElementById('historySection');
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+            
+            historySection.style.display = 'block';
+            const recentHistory = history.slice(-10).reverse();
+            
+            historyList.innerHTML = recentHistory.map(item => `
+                <div class="history-item">
+                    ${item.date} - ${item.medication} (${item.time}) ✅
+                </div>
+            `).join('');
+        }
+
+        // 薬の追加モーダルを開く
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('show');
+        }
+
+        // 薬の追加モーダルを閉じる
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('show');
+            document.getElementById('addMedicationForm').reset();
+        }
+
+        // 薬を追加
+        document.getElementById('addMedicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('medicationName').value.trim();
+            const dosage = document.getElementById('dosage').value.trim();
+            const time = document.getElementById('time').value;
+            const notes = document.getElementById('notes').value.trim();
+            
+            if (name && time) {
+                const newMedication = { name, dosage, time, notes };
+                medications.push(newMedication);
+                
+                saveData();
+                renderMedications();
+                updateProgress();
+                closeAddModal();
+                
+                // 成功のフィードバック
+                showToast('薬が追加されました！', 'success');
+            }
+        });
+
+        // 服薬完了
+        function completeMedication(index) {
+            if (!completedToday.includes(index)) {
+                completedToday.push(index);
+                
+                // 履歴に追加
+                const med = medications[index];
+                const today = new Date().toLocaleDateString('ja-JP');
+                history.push({
+                    date: today,
+                    medication: med.name,
+                    time: med.time
+                });
+                
+                saveData();
+                renderMedications();
+                updateProgress();
+                renderHistory();
+                
+                // アニメーション効果
+                showCompletionAnimation(index);
+                showToast('服薬完了！お疲れ様でした 🎉', 'success');
+            }
+        }
+
+        // 薬を削除
+        function deleteMedication(index) {
+            if (confirm('この薬を削除しますか？')) {
+                medications.splice(index, 1);
+                
+                // 完了リストからも削除（インデックス調整）
+                completedToday = completedToday.filter(i => i !== index).map(i => i > index ? i - 1 : i);
+                
+                saveData();
+                renderMedications();
+                updateProgress();
+                
+                showToast('薬が削除されました', 'warning');
+            }
+        }
+
+        // 完了アニメーション
+        function showCompletionAnimation(index) {
+            const buttons = document.querySelectorAll('.complete-btn');
+            if (buttons[index]) {
+                const button = buttons[index];
+                const animation = document.createElement('div');
+                animation.classList.add('check-animation');
+                animation.innerHTML = '✅';
+                
+                button.style.position = 'relative';
+                button.appendChild(animation);
+                
+                setTimeout(() => {
+                    if (animation.parentNode) {
+                        animation.parentNode.removeChild(animation);
+                    }
+                }, 1000);
+            }
+        }
+
+        // トースト通知
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--success-color)' : type === 'warning' ? 'var(--warning-color)' : 'var(--primary-color)'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 12px;
+                font-weight: bold;
+                z-index: 2000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.style.transform = 'translateX(0)', 100);
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // モーダルの外側クリックで閉じる
+        document.getElementById('addModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddModal();
+            }
+        });
+
+        // PWA対応: プッシュ通知の準備（デモンストレーション）
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showToast('通知が有効になりました', 'success');
+                    }
+                });
+            }
+        }
+
+        // 通知の送信（デモ）
+        function sendTestNotification() {
+            if (Notification.permission === 'granted') {
+                new Notification('💊 服薬時間です', {
+                    body: '今日の薬を確認してください',
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y="0.9em" font-size="90"%3E💊%3C/text%3E%3C/svg%3E'
+                });
+            }
+        }
+
+        // ページの可視性が変わった時の処理
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                loadData();
+                renderMedications();
+                updateProgress();
+            }
+        });
+    </script>
+</body>
+</html>
